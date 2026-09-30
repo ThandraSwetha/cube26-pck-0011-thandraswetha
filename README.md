@@ -1,65 +1,64 @@
-# Cube Buildathon · 03 · Pack Manager
-
-**Commerce Context · Round 2 · Individual Build**
-
-# Pack Manager — Vision-Assisted Outbound Order Verification
+# Pack Manager — CUBE Buildathon 2026
 
 ## 1. Problem Statement
 
-In an outbound packing process, a picker places products into a box before the package is sealed.
+Pack Manager is the outbound packing verification step for merchant-fulfilled and 3PL orders.
 
-A wrong item, missing item, incorrect quantity, or extra item can result in:
+Before a package is sealed, the system receives a photo of the open box and verifies:
 
-- Wrong shipments
-- Customer complaints
-- Returns
-- Refunds
-- Replacement shipments
-- Additional operational cost
+- Every expected item is present.
+- The quantity of each item is correct.
+- No unexpected extra item is present.
+- Uncertain observations are not treated as a successful verification.
 
-Manual verification of every package is time-consuming and expensive.
+The system produces one of the following decisions:
 
-### The problem
-
-Before sealing an outbound order, we need to answer:
-
-> **Does the open box contain exactly what the customer ordered?**
-
-The Pack Manager must verify:
-
-1. Are all expected items present?
-2. Is the quantity correct for every item?
-3. Is there any unexpected/extra item?
-4. Is the evidence reliable enough to make a decision?
-5. Should the box be sealed or stopped for correction?
+- `SEAL` — all required checks passed.
+- `STOP_AND_FIX` — an item is missing, quantity is incorrect, or an extra item is detected.
+- `REVIEW` — the system cannot confidently verify the package and human review is required.
 
 ---
 
 # 2. Our Solution
 
-We built **Pack Manager**, a vision-assisted verification application that checks the contents of an open box before it is sealed.
+We built a full-stack Pack Manager application that combines:
 
-The operator selects an order and uploads a photograph of the open box.
+1. Order data
+2. Vision-provider abstraction
+3. Deterministic decision engine
+4. Evidence generation
+5. Inspection history
+6. Image capture and hashing
+7. Uncertainty handling
+8. Tenant isolation
+9. React-based operator interface
 
-The system then follows this workflow:
+The solution is designed so that the vision component can be replaced by a real computer-vision model later without changing the core decision logic.
+
+### High-Level Flow
 
 ```text
-Customer Order
-      ↓
-Expected Order Lines
-      ↓
+Order / Expected Items
+        |
+        v
 Open-Box Image
-      ↓
+        |
+        v
 Vision Provider
-      ↓
-Detected Items
-      ↓
-Presence Check
-      ↓
-Quantity Check
-      ↓
-Extra Item Check
-      ↓
-Evidence Generation
-      ↓
-Final Decision
+        |
+        v
+Detected Items + Uncertainty
+        |
+        v
+Decision Engine
+        |
+        +----------------------+
+        |          |           |
+        v          v           v
+      SEAL    STOP_AND_FIX   REVIEW
+        |
+        v
+Evidence + Inspection Record
+        |
+        v
+Operator UI
