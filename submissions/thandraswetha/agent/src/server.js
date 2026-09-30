@@ -32,7 +32,8 @@ const builtFrontend = path.join(applicationDirectory, "web", "dist");
 app.use(express.static(builtFrontend));
 app.get("*path", (_request, response) => response.sendFile(path.join(builtFrontend, "index.html")));
 
-const server = app.listen(port, "127.0.0.1", () => {
+const server = app.listen(port, "0.0.0.0", () => {
+
   console.log(`Pack Manager API listening on http://127.0.0.1:${port}`);
   console.log(vision.provider === "mock"
     ? "Vision provider: MOCK (demo scenarios only; no real image inference or accuracy claim)"
