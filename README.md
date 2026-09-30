@@ -1,34 +1,65 @@
 # Cube Buildathon · 03 · Pack Manager
 
-**Commerce Context stream · Round 2 · Individual Build**
+**Commerce Context · Round 2 · Individual Build**
 
-## Pack Manager — Vision-Assisted Outbound Order Verification
+# Pack Manager — Vision-Assisted Outbound Order Verification
 
-Pack Manager is a vision-assisted agent for merchant-fulfilled and 3PL outbound orders.
+## 1. Problem Statement
 
-Before an order is sealed, the operator provides a photograph of the open box. The agent compares the expected order contents with the detected contents and produces a decision:
+In an outbound packing process, a picker places products into a box before the package is sealed.
 
-- **SEAL** — expected items and quantities are satisfied and no extra items are detected.
-- **STOP_AND_FIX** — a confident mismatch is detected, such as a missing item, wrong quantity, or extra item.
-- **REVIEW** — the evidence is insufficient or the vision provider fails, so the system does not allow an unsafe automatic seal.
+A wrong item, missing item, incorrect quantity, or extra item can result in:
 
-The system also stores evidence so that another downstream process can understand what was expected, what was detected, which checks were performed, and why the final decision was produced.
+- Wrong shipments
+- Customer complaints
+- Returns
+- Refunds
+- Replacement shipments
+- Additional operational cost
+
+Manual verification of every package is time-consuming and expensive.
+
+### The problem
+
+Before sealing an outbound order, we need to answer:
+
+> **Does the open box contain exactly what the customer ordered?**
+
+The Pack Manager must verify:
+
+1. Are all expected items present?
+2. Is the quantity correct for every item?
+3. Is there any unexpected/extra item?
+4. Is the evidence reliable enough to make a decision?
+5. Should the box be sealed or stopped for correction?
 
 ---
 
-## 1. Problem Understanding
+# 2. Our Solution
 
-Pack Manager represents **Step 3 of 5** in the Commerce Context chain.
+We built **Pack Manager**, a vision-assisted verification application that checks the contents of an open box before it is sealed.
+
+The operator selects an order and uploads a photograph of the open box.
+
+The system then follows this workflow:
 
 ```text
-Supplier delivery
-       ↓
-01 Receiving
-       ↓
-02 Prep
-       ↓
-03 Pack Manager  ← This project
-       ↓
-04 Returns
-       ↓
-05 Recovery
+Customer Order
+      ↓
+Expected Order Lines
+      ↓
+Open-Box Image
+      ↓
+Vision Provider
+      ↓
+Detected Items
+      ↓
+Presence Check
+      ↓
+Quantity Check
+      ↓
+Extra Item Check
+      ↓
+Evidence Generation
+      ↓
+Final Decision
