@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parse } from "csv-parse/sync";
 
-const sampleCsvPath = fileURLToPath(new URL("../../../../../data/pack_sample.csv", import.meta.url));
+const sampleCsvPath = fileURLToPath(new URL("../../data/pack_sample.csv", import.meta.url));
 
 function parseOrderLines(orderLines) {
   return orderLines.split(";").filter(Boolean).map((line) => {
