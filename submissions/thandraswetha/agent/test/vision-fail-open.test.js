@@ -15,10 +15,15 @@ test("provider failures and timeout save pending inspections and preserve captur
   let behavior = "success";
   const vision = {
     provider: "test-provider",
-    analyze: async (input) => {
-      assert.deepEqual(Object.keys(input).sort(), ["expectedItems", "image"]);
+    analyze: async (input, { signal } = {}) => {
+      assert.deepEqual(Object.keys(input).sort(), ["expectedItems", "image", "mimeType"]);
+      assert.equal(input.mimeType, "image/png");
       if (behavior === "throws") throw new Error("provider unavailable");
-      if (behavior === "timeout") return new Promise(() => {});
+      if (behavior === "timeout") {
+        return new Promise((_, reject) => {
+          signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+        });
+      }
       if (behavior === "invalid") {
         return {
           imageQuality: "GOOD",

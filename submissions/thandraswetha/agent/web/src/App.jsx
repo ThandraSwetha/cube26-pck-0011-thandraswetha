@@ -126,8 +126,12 @@ function ResultPanel({ inspection, orgId }) {
   const findings = inspectionFindings(inspection);
   const extraCheck = inspection.checks?.extra_items;
   const providerLabel = inspection.modelProvider === "mock"
-    ? "Mock Vision Scenario · demo only"
-    : inspection.modelProvider || "Provider unknown";
+    ? "Mock Vision Scenario · not image inference"
+    : inspection.modelProvider === "gemini"
+      ? `Gemini Vision · ${pending ? "analysis pending" : "image inference"}`
+      : inspection.modelProvider === "openai"
+        ? `OpenAI Vision · ${pending ? "analysis pending" : "image inference"}`
+        : inspection.modelProvider || "Provider unknown";
 
   return (
     <section className="result-panel" aria-label="Inspection details">
@@ -154,7 +158,7 @@ function ResultPanel({ inspection, orgId }) {
       </section>
 
       <section className="detail-section" aria-labelledby="detected-heading">
-        <h3 id="detected-heading" className="detail-heading">C. Detected Items <span className="demo-disclaimer">Mock Vision Scenario · not image inference</span></h3>
+        <h3 id="detected-heading" className="detail-heading">C. Detected Items <span className="demo-disclaimer">{providerLabel}</span></h3>
         {detected.length ? <div className="table-wrap"><table>
           <thead><tr><th>SKU</th><th>Item name</th><th>Observed quantity</th><th>Confidence</th></tr></thead>
           <tbody>{detected.map((item, index) => <tr key={`${item.sku}-${index}`}><td><strong>{item.sku}</strong></td><td>{item.name || item.sku}</td><td>{item.quantity}</td><td>{Number.isFinite(item.confidence) ? `${Math.round(item.confidence * 100)}%` : "—"}</td></tr>)}</tbody>

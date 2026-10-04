@@ -13,16 +13,21 @@ const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const SCENARIOS = new Set(["match", "missing_item", "wrong_quantity", "extra_item", "uncertain", "model_failure"]);
 const VALID_IMAGE_QUALITIES = new Set(["GOOD", "POOR"]);
 
-function withTimeout(promise, timeoutMs) {
+function withTimeout(operation, timeoutMs) {
+  const controller = new AbortController();
   let timer;
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => {
       const error = new Error("Vision provider timeout");
       error.code = "VISION_TIMEOUT";
+      controller.abort(error);
       reject(error);
     }, timeoutMs);
   });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+  return Promise.race([
+    Promise.resolve().then(() => operation(controller.signal)),
+    timeout,
+  ]).finally(() => clearTimeout(timer));
 }
 
 function preserveValidVisionField(result, field, imageQuality) {
@@ -55,6 +60,27 @@ function pendingVisionResult(result, expectedItems, failureReason) {
 
 function safeJson(value) {
   return typeof value === "string" ? JSON.parse(value) : value;
+}
+
+function logVisionFailure(provider, error, timeoutMs) {
+  if (provider !== "openai" && provider !== "gemini") return;
+  const diagnostic = error?.diagnostic ?? {};
+  const providerName = provider === "gemini" ? "Gemini" : "OpenAI";
+  const message = (diagnostic.status === 401 || diagnostic.status === 403)
+    ? `${providerName} rejected the API credential (HTTP ${diagnostic.status}); response text suppressed.`
+    : error?.code === "VISION_TIMEOUT"
+    ? `${providerName} vision analysis timed out after ${timeoutMs} ms.`
+    : diagnostic.message || error?.message || "Unknown vision provider error.";
+  const safeMessage = String(message)
+    .replace(/\bsk-[A-Za-z0-9_-]+\b/gi, "[REDACTED]")
+    .replace(/Bearer\s+\S+/gi, "Bearer [REDACTED]")
+    .slice(0, 1000);
+  const details = { message: safeMessage };
+  const status = diagnostic.status;
+  const code = diagnostic.code || error?.code;
+  if (Number.isInteger(status)) details.status = status;
+  if (typeof code === "string" && /^[A-Za-z0-9_.-]{1,100}$/.test(code)) details.code = code;
+  console.error(`${providerName} vision analysis failed:`, details);
 }
 
 function createApp({ storage, vision, maxUploadMb = 8, visionTimeoutMs = 15000 }) {
@@ -162,19 +188,21 @@ function createApp({ storage, vision, maxUploadMb = 8, visionTimeoutMs = 15000 }
       let modelFailureReason;
       let providerResponse;
       try {
-        const visionInput = { image: request.file.buffer, expectedItems };
+        const visionInput = { image: request.file.buffer, mimeType: detectedType.mime, expectedItems };
         if (vision.provider === "mock") visionInput.scenario = scenario;
         providerResponse = await withTimeout(
-          Promise.resolve().then(() => vision.analyze(visionInput)),
+          (signal) => vision.analyze(visionInput, { signal }),
           visionTimeoutMs,
         );
         try {
           visionResult = validateVisionResult(providerResponse);
-        } catch {
+        } catch (error) {
+          logVisionFailure(vision.provider, error, visionTimeoutMs);
           modelStatus = "PENDING";
           modelFailureReason = "Vision analysis returned an invalid response. The uploaded capture was saved for review.";
         }
       } catch (error) {
+        logVisionFailure(vision.provider, error, visionTimeoutMs);
         modelStatus = "PENDING";
         modelFailureReason = error.code === "VISION_TIMEOUT"
           ? `Vision analysis timed out after ${visionTimeoutMs} ms. The uploaded capture was saved for review.`
