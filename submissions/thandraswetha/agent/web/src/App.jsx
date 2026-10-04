@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { compressImageForUpload } from "./image-compression.js";
 import {
   AlertCircle, BadgeCheck, Box, Camera, CheckCircle2, ChevronRight,
   CircleHelp, ClipboardList, Clock3, FileImage, ImagePlus, LoaderCircle,
@@ -289,11 +290,12 @@ function App() {
     event.preventDefault(); setFormError(""); setApiError(""); setSavedMessage("");
     if (!selectedOrder) { setFormError("Select an order before submitting an inspection."); return; }
     if (!image) { setFormError("Choose an open-box photo before submitting."); return; }
-    const formData = new FormData();
-    formData.append("unitId", selectedOrder.unitId);
-    formData.append("image", image);
     setSubmitting(true);
     try {
+      const compressedImage = await compressImageForUpload(image);
+      const formData = new FormData();
+      formData.append("unitId", selectedOrder.unitId);
+      formData.append("image", compressedImage.blob, compressedImage.filename);
       const result = await requestJson("/api/analyze", orgId, { method: "POST", body: formData });
       setInspection(result); setSavedMessage("Inspection saved to history.");
       try {
