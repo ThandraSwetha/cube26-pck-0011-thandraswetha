@@ -19,7 +19,7 @@ The system produces one of the following decisions:
 
 ---
 
-# 2. Our Solution
+## 2. Our Solution
 
 We built a full-stack Pack Manager application that combines:
 
@@ -33,7 +33,9 @@ We built a full-stack Pack Manager application that combines:
 8. Tenant isolation
 9. React-based operator interface
 
-The vision provider is replaceable without changing the core decision logic. The project includes a deterministic mock provider for tests and demonstrations, plus real multimodal providers for Google Gemini and OpenAI.
+The solution uses a replaceable vision-provider architecture with real multimodal image analysis through Google Gemini and OpenAI, while keeping the final packing decision in a deterministic verification engine.
+
+A deterministic mock provider is also included for automated tests and demonstrations.
 
 ### High-Level Flow
 
@@ -62,50 +64,4 @@ Evidence + Inspection Record
         |
         v
 Operator UI
-
-## 3. Vision and Decision Boundaries
-
-The selected vision provider analyzes the uploaded image and returns structured visual observations: detected items, quantities, image quality, uncertainty, and evidence. It does not decide whether the package passes inspection.
-
-The deterministic decision engine compares those observations against the expected order and determines check outcomes and the final action:
-
-- `PASS`, `FAIL`, or `UNCERTAIN` for verification checks.
-- `SEAL`, `STOP_AND_FIX`, or `REVIEW` for the final decision.
-
-If provider analysis fails, times out, is rate-limited, or returns invalid output, the inspection is saved as `PENDING` and requires `REVIEW`. The uploaded image and its SHA-256 evidence are preserved for traceability. Tenant-scoped storage continues to isolate orders, inspections, and captures.
-
-## 4. Run Locally
-
-From `submissions/thandraswetha/agent`:
-
-```sh
-npm ci
 ```
-
-Copy `.env.example` to `.env` and set the provider key locally. Never commit `.env` or place API keys in source files.
-
-Gemini configuration:
-
-```dotenv
-VISION_PROVIDER=gemini
-GEMINI_API_KEY=
-GEMINI_VISION_MODEL=gemini-3.5-flash-lite
-VISION_TIMEOUT_MS=30000
-```
-
-OpenAI is also available with `VISION_PROVIDER=real`, `OPENAI_API_KEY`, and optional `OPENAI_VISION_MODEL` / `OPENAI_BASE_URL`. Use `VISION_PROVIDER=mock` for deterministic demonstration and automated tests; mock scenarios do not infer from pixels.
-
-Start the API and frontend together:
-
-```sh
-npm run dev
-```
-
-Run checks and build the frontend:
-
-```sh
-npm test
-npm run build
-```
-
-Vite writes the production frontend to `web/dist`, which is the directory served by the backend.
